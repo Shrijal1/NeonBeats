@@ -3,11 +3,9 @@ import {
   View,
   Text,
   ScrollView,
-  FlatList,
   RefreshControl,
   StyleSheet,
   StatusBar,
-  Dimensions,
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,73 +13,76 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { COLORS, SIZES, TRENDING_QUERIES, FEATURED_PLAYLISTS } from '../utils/constants';
+import { COLORS, SIZES, TRENDING_QUERIES, RECOMMENDED_QUERIES, FEATURED_PLAYLISTS } from '../utils/constants';
 import { MusicApi } from '../services/musicApi';
 import { usePlayer } from '../hooks/usePlayer';
 import { useLibraryStore } from '../store/libraryStore';
-import { usePlayerStore } from '../store/playerStore';
 import { SongCard, HorizontalSongCard } from '../components/SongCard';
 import { SongCardSkeleton } from '../components/SkeletonLoader';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { Song, SearchResult } from '../types';
-
 import { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const { width } = Dimensions.get('window');
 
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { playSong, currentSong } = usePlayer();
   const { recentlyPlayed, refreshRecentlyPlayed } = useLibraryStore();
   const [trending, setTrending] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [recommended, setRecommended] = useState<SearchResult[]>([]);
+  const [isLoadingTrending, setIsLoadingTrending] = useState(true);
+  const [isLoadingRec, setIsLoadingRec] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const loadTrending = useCallback(async () => {
-    setIsLoading(true);
+    setIsLoadingTrending(true);
     try {
-      const results = await MusicApi.searchMultiple(TRENDING_QUERIES.slice(0, 4));
-      setTrending(results.slice(0, 12));
+      const results = await MusicApi.searchMultiple(TRENDING_QUERIES.slice(0, 3));
+      setTrending(results.slice(0, 10));
     } catch {
       setTrending([]);
     } finally {
-      setIsLoading(false);
+      setIsLoadingTrending(false);
+    }
+  }, []);
+
+  const loadRecommended = useCallback(async () => {
+    setIsLoadingRec(true);
+    try {
+      const results = await MusicApi.searchMultiple(RECOMMENDED_QUERIES.slice(0, 3));
+      setRecommended(results.slice(0, 10));
+    } catch {
+      setRecommended([]);
+    } finally {
+      setIsLoadingRec(false);
     }
   }, []);
 
   useEffect(() => {
     loadTrending();
+    loadRecommended();
     refreshRecentlyPlayed();
-  }, [loadTrending, refreshRecentlyPlayed]);
+  }, [loadTrending, loadRecommended, refreshRecentlyPlayed]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadTrending(), refreshRecentlyPlayed()]);
+    await Promise.all([loadTrending(), loadRecommended(), refreshRecentlyPlayed()]);
     setRefreshing(false);
-  }, [loadTrending, refreshRecentlyPlayed]);
+  }, [loadTrending, loadRecommended, refreshRecentlyPlayed]);
 
-  async function handleSongPress(result: SearchResult) {
-    const song: Song = {
-      id: result.id,
-      title: result.title,
-      artist: result.artist,
-      thumbnail: result.thumbnail,
-      duration: result.duration,
-      audioUrl: result.audioUrl,
+  function toSong(r: SearchResult): Song {
+    return {
+      id: r.id, title: r.title, artist: r.artist,
+      thumbnail: r.thumbnail, duration: r.duration, audioUrl: r.audioUrl,
     };
-    const queue = trending
-      .filter((r) => r.id !== result.id)
-      .map((r) => ({
-        id: r.id,
-        title: r.title,
-        artist: r.artist,
-        thumbnail: r.thumbnail,
-        duration: r.duration,
-        audioUrl: r.audioUrl,
-      }));
-    await playSong(song, [song, ...queue]);
+  }
+
+  function buildQueue(items: SearchResult[], current: SearchResult): Song[] {
+    const s = toSong(current);
+    const rest = items.filter((r) => r.id !== current.id).map(toSong);
+    return [s, ...rest];
   }
 
   return (
@@ -110,14 +111,18 @@ export function HomeScreen() {
 
         {/* Featured Playlists */}
         <Section title="Featured">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hScroll}
+          >
             {FEATURED_PLAYLISTS.map((pl) => (
-              <TouchableOpacity key={pl.id} style={[styles.featCard, { borderColor: pl.color + '44' }]}>
-                <LinearGradient
-                  colors={[pl.color + '33', COLORS.card]}
-                  style={styles.featGradient}
-                >
-                  <Ionicons name="musical-notes" size={32} color={pl.color} />
+              <TouchableOpacity
+                key={pl.id}
+                style={[styles.featCard, { borderColor: pl.color + '44' }]}
+              >
+                <LinearGradient colors={[pl.color + '33', COLORS.card]} style={styles.featGradient}>
+                  <Ionicons name="musical-notes" size={28} color={pl.color} />
                   <Text style={[styles.featName, { color: pl.color }]}>{pl.name}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -128,12 +133,16 @@ export function HomeScreen() {
         {/* Recently Played */}
         {recentlyPlayed.length > 0 && (
           <Section title="Recently Played">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
               {recentlyPlayed.slice(0, 8).map((song) => (
                 <HorizontalSongCard
                   key={song.id}
                   song={song}
-                  onPress={() => playSong(song)}
+                  onPress={() => playSong(song, recentlyPlayed)}
                   isActive={currentSong?.id === song.id}
                 />
               ))}
@@ -141,20 +150,53 @@ export function HomeScreen() {
           </Section>
         )}
 
-        {/* Trending */}
+        {/* Trending Now — compact horizontal cards */}
         <Section title="Trending Now">
-          {isLoading
+          {isLoadingTrending ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+              scrollEnabled={false}
+            >
+              {Array.from({ length: 5 }).map((_, i) => (
+                <View key={i} style={styles.trendingSkeletonCard}>
+                  <View style={styles.trendingSkeletonThumb} />
+                  <View style={styles.trendingSkeletonTitle} />
+                  <View style={styles.trendingSkeletonArtist} />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.hScroll}
+            >
+              {trending.map((item) => (
+                <HorizontalSongCard
+                  key={item.id}
+                  song={item}
+                  onPress={() => playSong(toSong(item), buildQueue(trending, item))}
+                  isActive={currentSong?.id === item.id}
+                  cardWidth={105}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </Section>
+
+        {/* Recommended for You — vertical list */}
+        <Section title="Recommended for You">
+          {isLoadingRec
             ? Array.from({ length: 5 }).map((_, i) => <SongCardSkeleton key={i} />)
-            : trending.map((item) => (
+            : recommended.map((item) => (
                 <SongCard
                   key={item.id}
                   song={item}
-                  onPress={() => handleSongPress(item)}
+                  onPress={() => playSong(toSong(item), buildQueue(recommended, item))}
                   isActive={currentSong?.id === item.id}
-                  onMorePress={() => setSelectedSong({
-                    id: item.id, title: item.title, artist: item.artist,
-                    thumbnail: item.thumbnail, duration: item.duration, audioUrl: item.audioUrl,
-                  })}
+                  onMorePress={() => setSelectedSong(toSong(item))}
                 />
               ))}
         </Section>
@@ -217,8 +259,8 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   featCard: {
-    width: 130,
-    height: 130,
+    width: 120,
+    height: 120,
     borderRadius: SIZES.borderRadiusLg,
     overflow: 'hidden',
     marginRight: 12,
@@ -231,9 +273,34 @@ const styles = StyleSheet.create({
     padding: SIZES.md,
   },
   featName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
+    marginTop: 6,
+  },
+  // trending skeleton
+  trendingSkeletonCard: {
+    width: 105,
+    marginRight: 12,
+  },
+  trendingSkeletonThumb: {
+    width: 105,
+    height: 105,
+    borderRadius: SIZES.borderRadius,
+    backgroundColor: COLORS.card,
+  },
+  trendingSkeletonTitle: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.card,
     marginTop: 8,
+    width: '80%',
+  },
+  trendingSkeletonArtist: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.card,
+    marginTop: 5,
+    width: '55%',
   },
 });

@@ -42,6 +42,14 @@ export const TRENDING_QUERIES = [
   'chill vibes',
 ];
 
+export const RECOMMENDED_QUERIES = [
+  'lofi hip hop beats',
+  'indie pop 2024',
+  'rnb soul classics',
+  'acoustic covers',
+  'workout motivation',
+];
+
 export const FEATURED_PLAYLISTS = [
   { id: 'p1', name: 'Neon Nights', query: 'synthwave', color: '#CCFF00' },
   { id: 'p2', name: 'Cyber Bass', query: 'electronic bass', color: '#00E5FF' },

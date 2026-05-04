@@ -98,10 +98,23 @@ export function SongCard({
   );
 }
 
-export function HorizontalSongCard({ song, onPress, isActive }: Pick<Props, 'song' | 'onPress' | 'isActive'>) {
+export function HorizontalSongCard({
+  song,
+  onPress,
+  isActive,
+  cardWidth = 140,
+}: Pick<Props, 'song' | 'onPress' | 'isActive'> & { cardWidth?: number }) {
   return (
-    <TouchableOpacity style={styles.horizontal} onPress={onPress} activeOpacity={0.7}>
-      <Image source={{ uri: song.thumbnail }} style={styles.horizontalThumb} resizeMode="cover" />
+    <TouchableOpacity
+      style={[styles.horizontal, { width: cardWidth }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Image
+        source={{ uri: song.thumbnail }}
+        style={[styles.horizontalThumb, { width: cardWidth, height: cardWidth }]}
+        resizeMode="cover"
+      />
       {isActive && (
         <View style={[styles.activeOverlay, styles.horizontalOverlay]}>
           <Ionicons name="musical-notes" size={16} color={COLORS.neonYellow} />
