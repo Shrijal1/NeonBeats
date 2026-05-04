@@ -10,7 +10,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { usePlayerStore } from '../store/playerStore';
 import { COLORS, SIZES } from '../utils/constants';
 import { truncateText } from '../utils/formatters';
@@ -30,7 +29,7 @@ export function MiniPlayer() {
       style={styles.wrapper}
       onPress={() => navigation.navigate('Player', { song: currentSong })}
     >
-      <BlurView intensity={80} tint="dark" style={styles.blur}>
+      <View style={styles.bg}>
         <View style={styles.container}>
           <Image source={{ uri: currentSong.thumbnail }} style={styles.thumb} />
 
@@ -88,7 +87,7 @@ export function MiniPlayer() {
             ]}
           />
         </View>
-      </BlurView>
+      </View>
     </Pressable>
   );
 }
@@ -100,11 +99,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 99,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.border,
   },
-  blur: {
-    overflow: 'hidden',
+  bg: {
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   container: {
     flexDirection: 'row',
