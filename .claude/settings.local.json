@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(curl -s \"https://itunes.apple.com/search?term=shape+of+you&media=music&entity=song&limit=3\")",
+      "Bash(curl -s --max-time 10 \"https://jiosaavn-api-privatecvc2.vercel.app/api/search/songs?query=shape+of+you&page=1&limit=2\")",
+      "Bash(curl -s --max-time 10 \"https://jiosaavn-api-2.vercel.app/api/search/songs?query=shape+of+you&page=1&limit=2\")",
+      "Bash(curl -s --max-time 10 \"https://jiosaavn-api-privatecvc2.vercel.app/songs/wwSCc15h\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const b=fs.readFileSync\\('assets/icon.png'\\); console.log\\('size:', b.length, 'bytes'\\); console.log\\('PNG sig valid:', b.slice\\(0,8\\).toString\\('hex'\\) === '89504e470d0a1a0a'\\);\")"
+    ]
+  }
+}
