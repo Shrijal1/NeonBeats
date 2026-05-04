@@ -28,20 +28,25 @@ export function SearchScreen() {
 
   async function handlePress(result: SearchResult) {
     Keyboard.dismiss();
-    try {
-      const song = await MusicApi.getSongDetails(result.id);
-      const queue = results
-        .filter((r) => r.id !== result.id)
-        .map((r) => ({
-          id: r.id,
-          title: r.title,
-          artist: r.artist,
-          thumbnail: r.thumbnail,
-          duration: r.duration,
-          audioUrl: r.audioUrl,
-        }));
-      await playSong(song, [song, ...queue]);
-    } catch {}
+    const song = {
+      id: result.id,
+      title: result.title,
+      artist: result.artist,
+      thumbnail: result.thumbnail,
+      duration: result.duration,
+      audioUrl: result.audioUrl,
+    };
+    const queue = results
+      .filter((r) => r.id !== result.id)
+      .map((r) => ({
+        id: r.id,
+        title: r.title,
+        artist: r.artist,
+        thumbnail: r.thumbnail,
+        duration: r.duration,
+        audioUrl: r.audioUrl,
+      }));
+    await playSong(song, [song, ...queue]);
   }
 
   async function handleLike(result: SearchResult) {

@@ -24,6 +24,7 @@ interface PlayerStore {
 }
 
 let soundRef: Audio.Sound | null = null;
+let loadGeneration = 0; // increments on every playSong call to cancel stale loads
 
 async function stopCurrentSound() {
   if (soundRef) {
@@ -46,9 +47,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   showMiniPlayer: false,
 
   async playSong(song, queue = []) {
-    set({ isLoading: true, currentSong: song, showMiniPlayer: true, position: 0 });
+    const gen = ++loadGeneration;
 
-    // Save to recently played
+    set({ isLoading: true, currentSong: song, showMiniPlayer: true, position: 0, isPlaying: false });
+
     const recent = await Storage.getRecentlyPlayed();
     const filtered = recent.filter((s) => s.id !== song.id);
     await Storage.setRecentlyPlayed([song, ...filtered].slice(0, MAX_RECENTLY_PLAYED));
@@ -61,6 +63,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     await stopCurrentSound();
 
+    // Another song was requested while we were setting up — bail out
+    if (gen !== loadGeneration) return;
+
     const queueToUse = queue.length > 0 ? queue : [song];
     const idx = queueToUse.findIndex((s) => s.id === song.id);
     set({ queue: queueToUse, queueIndex: idx >= 0 ? idx : 0 });
@@ -70,6 +75,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         { uri: song.audioUrl },
         { shouldPlay: true },
         (status: AVPlaybackStatus) => {
+          // Ignore callbacks from a previous load
+          if (gen !== loadGeneration) return;
           if (!status.isLoaded) return;
           set({
             position: status.positionMillis / 1000,
@@ -81,10 +88,19 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           }
         },
       );
+
+      // Another song was requested while this one was loading — discard it
+      if (gen !== loadGeneration) {
+        sound.unloadAsync().catch(() => {});
+        return;
+      }
+
       soundRef = sound;
       set({ isLoading: false, isPlaying: true });
-    } catch (e) {
-      set({ isLoading: false, isPlaying: false });
+    } catch {
+      if (gen === loadGeneration) {
+        set({ isLoading: false, isPlaying: false });
+      }
     }
   },
 

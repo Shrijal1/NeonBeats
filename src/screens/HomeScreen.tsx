@@ -60,8 +60,14 @@ export function HomeScreen() {
   }, [loadTrending, refreshRecentlyPlayed]);
 
   async function handleSongPress(result: SearchResult) {
-    const song = await MusicApi.getSongDetails(result.id).catch(() => null);
-    if (!song) return;
+    const song: Song = {
+      id: result.id,
+      title: result.title,
+      artist: result.artist,
+      thumbnail: result.thumbnail,
+      duration: result.duration,
+      audioUrl: result.audioUrl,
+    };
     const queue = trending
       .filter((r) => r.id !== result.id)
       .map((r) => ({
