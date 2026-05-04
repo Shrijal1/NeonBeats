@@ -28,18 +28,31 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { playSong, currentSong } = usePlayer();
-  const { recentlyPlayed, refreshRecentlyPlayed } = useLibraryStore();
+  const { recentlyPlayed, loadLibrary } = useLibraryStore();
   const [trending, setTrending] = useState<SearchResult[]>([]);
   const [recommended, setRecommended] = useState<SearchResult[]>([]);
   const [isLoadingTrending, setIsLoadingTrending] = useState(true);
   const [isLoadingRec, setIsLoadingRec] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [mixFromHistory, setMixFromHistory] = useState(false);
 
   const loadTrending = useCallback(async () => {
     setIsLoadingTrending(true);
     try {
-      const results = await MusicApi.searchMultiple(TRENDING_QUERIES.slice(0, 3));
+      // Build queries from real listening/liked history
+      const { recentlyPlayed: recent, likedSongs: liked } = useLibraryStore.getState();
+      const history = [...recent, ...liked];
+      let queries: string[];
+      if (history.length >= 2) {
+        // Unique artists from most recent history, up to 4
+        queries = [...new Set(history.map((s) => s.artist))].slice(0, 4);
+        setMixFromHistory(true);
+      } else {
+        queries = TRENDING_QUERIES.slice(0, 3);
+        setMixFromHistory(false);
+      }
+      const results = await MusicApi.searchMultiple(queries);
       setTrending(results.slice(0, 10));
     } catch {
       setTrending([]);
@@ -61,16 +74,20 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    loadTrending();
-    loadRecommended();
-    refreshRecentlyPlayed();
-  }, [loadTrending, loadRecommended, refreshRecentlyPlayed]);
+    async function init() {
+      await loadLibrary();     // loads liked + recently played into store first
+      loadTrending();          // now has access to full history
+      loadRecommended();
+    }
+    init();
+  }, [loadLibrary, loadTrending, loadRecommended]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadTrending(), loadRecommended(), refreshRecentlyPlayed()]);
+    await loadLibrary();
+    await Promise.all([loadTrending(), loadRecommended()]);
     setRefreshing(false);
-  }, [loadTrending, loadRecommended, refreshRecentlyPlayed]);
+  }, [loadLibrary, loadTrending, loadRecommended]);
 
   function toSong(r: SearchResult): Song {
     return {
@@ -150,8 +167,8 @@ export function HomeScreen() {
           </Section>
         )}
 
-        {/* Trending Now — compact horizontal cards */}
-        <Section title="Trending Now">
+        {/* Your Mix — compact horizontal cards based on listening history */}
+        <Section title={mixFromHistory ? 'Your Mix' : 'Trending Now'}>
           {isLoadingTrending ? (
             <ScrollView
               horizontal
