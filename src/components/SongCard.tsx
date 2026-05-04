@@ -18,6 +18,7 @@ interface Props {
   song: SongLike;
   onPress: () => void;
   onLongPress?: () => void;
+  onMorePress?: () => void;
   isActive?: boolean;
   isLiked?: boolean;
   onToggleLike?: () => void;
@@ -29,6 +30,7 @@ export function SongCard({
   song,
   onPress,
   onLongPress,
+  onMorePress,
   isActive,
   isLiked,
   onToggleLike,
@@ -85,7 +87,13 @@ export function SongCard({
         </TouchableOpacity>
       )}
 
-      <Ionicons name="ellipsis-vertical" size={18} color={COLORS.textMuted} style={styles.menu} />
+      <TouchableOpacity
+        onPress={onMorePress}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        style={styles.menu}
+      >
+        <Ionicons name="ellipsis-vertical" size={18} color={COLORS.textMuted} />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }

@@ -14,6 +14,8 @@ interface LibraryStore {
   createPlaylist: (name: string) => Promise<void>;
   addToPlaylist: (playlistId: string, song: Song) => Promise<void>;
   removeFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
+  deletePlaylist: (playlistId: string) => Promise<void>;
+  renamePlaylist: (playlistId: string, name: string) => Promise<void>;
   refreshRecentlyPlayed: () => Promise<void>;
 }
 
@@ -72,6 +74,20 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
       pl.id === playlistId
         ? { ...pl, songs: pl.songs.filter((s) => s.id !== songId) }
         : pl,
+    );
+    set({ playlists: updated });
+    await Storage.setPlaylists(updated);
+  },
+
+  async deletePlaylist(playlistId) {
+    const updated = get().playlists.filter((pl) => pl.id !== playlistId);
+    set({ playlists: updated });
+    await Storage.setPlaylists(updated);
+  },
+
+  async renamePlaylist(playlistId, name) {
+    const updated = get().playlists.map((pl) =>
+      pl.id === playlistId ? { ...pl, name } : pl,
     );
     set({ playlists: updated });
     await Storage.setPlaylists(updated);

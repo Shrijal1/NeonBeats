@@ -6,23 +6,29 @@ import {
   StyleSheet,
   StatusBar,
   TouchableOpacity,
-  Alert,
   TextInput,
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayer } from '../hooks/usePlayer';
 import { SongCard } from '../components/SongCard';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { COLORS, SIZES } from '../utils/constants';
 import { Song } from '../types';
+import { RootStackParamList } from '../navigation/types';
 
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Tab = 'liked' | 'recent' | 'playlists';
 
 export function LibraryScreen() {
+  const navigation = useNavigation<Nav>();
   const [activeTab, setActiveTab] = useState<Tab>('liked');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const { likedSongs, recentlyPlayed, playlists, loadLibrary, toggleLike, isLiked, createPlaylist } =
     useLibraryStore();
   const { playSong, currentSong } = usePlayer();
@@ -52,7 +58,6 @@ export function LibraryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabs}>
         {(['liked', 'recent', 'playlists'] as Tab[]).map((tab) => (
           <TouchableOpacity
@@ -72,13 +77,19 @@ export function LibraryScreen() {
           data={playlists}
           keyExtractor={(pl) => pl.id}
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.playlistRow}>
+            <TouchableOpacity
+              style={styles.playlistRow}
+              onPress={() => navigation.navigate('PlaylistDetail', { playlistId: item.id })}
+              activeOpacity={0.7}
+            >
               <View style={styles.playlistIcon}>
                 <Ionicons name="musical-notes" size={24} color={COLORS.neonBlue} />
               </View>
               <View style={styles.playlistInfo}>
                 <Text style={styles.playlistName}>{item.name}</Text>
-                <Text style={styles.playlistCount}>{item.songs.length} songs</Text>
+                <Text style={styles.playlistCount}>
+                  {item.songs.length} song{item.songs.length !== 1 ? 's' : ''}
+                </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
             </TouchableOpacity>
@@ -103,13 +114,18 @@ export function LibraryScreen() {
               isActive={currentSong?.id === item.id}
               isLiked={isLiked(item.id)}
               onToggleLike={activeTab === 'liked' ? () => toggleLike(item) : undefined}
+              onMorePress={() => setSelectedSong(item)}
             />
           )}
           ListEmptyComponent={
             <EmptyState
               icon={activeTab === 'liked' ? 'heart-outline' : 'time-outline'}
               message={activeTab === 'liked' ? 'No liked songs' : 'Nothing played yet'}
-              sub={activeTab === 'liked' ? 'Heart a song to save it here' : 'Your recently played will appear here'}
+              sub={
+                activeTab === 'liked'
+                  ? 'Heart a song to save it here'
+                  : 'Your recently played will appear here'
+              }
             />
           }
           contentContainerStyle={styles.list}
@@ -118,7 +134,12 @@ export function LibraryScreen() {
       )}
 
       {/* Create playlist modal */}
-      <Modal visible={showCreateModal} transparent animationType="fade" onRequestClose={() => setShowCreateModal(false)}>
+      <Modal
+        visible={showCreateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCreateModal(false)}
+      >
         <View style={styles.modalBg}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>New Playlist</Text>
@@ -129,6 +150,8 @@ export function LibraryScreen() {
               placeholder="Playlist name…"
               placeholderTextColor={COLORS.textMuted}
               autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleCreate}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.modalCancel}>
@@ -141,11 +164,21 @@ export function LibraryScreen() {
           </View>
         </View>
       </Modal>
+
+      <AddToPlaylistModal song={selectedSong} onClose={() => setSelectedSong(null)} />
     </View>
   );
 }
 
-function EmptyState({ icon, message, sub }: { icon: keyof typeof Ionicons.glyphMap; message: string; sub: string }) {
+function EmptyState({
+  icon,
+  message,
+  sub,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  message: string;
+  sub: string;
+}) {
   return (
     <View style={emptyStyles.container}>
       <Ionicons name={icon} size={52} color={COLORS.textMuted} />
@@ -200,9 +233,18 @@ const styles = StyleSheet.create({
   playlistInfo: { flex: 1, marginLeft: 12 },
   playlistName: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
   playlistCount: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-  // modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { width: '80%', backgroundColor: COLORS.surfaceElevated, borderRadius: SIZES.borderRadiusLg, padding: SIZES.lg },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: '80%',
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: SIZES.borderRadiusLg,
+    padding: SIZES.lg,
+  },
   modalTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginBottom: SIZES.md },
   modalInput: {
     backgroundColor: COLORS.card,
@@ -217,7 +259,12 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: SIZES.md },
   modalCancel: { paddingHorizontal: SIZES.md, paddingVertical: 10 },
   modalCancelText: { color: COLORS.textSecondary, fontSize: 15 },
-  modalCreate: { paddingHorizontal: SIZES.md, paddingVertical: 10, backgroundColor: COLORS.neonYellow, borderRadius: SIZES.borderRadius },
+  modalCreate: {
+    paddingHorizontal: SIZES.md,
+    paddingVertical: 10,
+    backgroundColor: COLORS.neonYellow,
+    borderRadius: SIZES.borderRadius,
+  },
   modalCreateText: { color: COLORS.background, fontSize: 15, fontWeight: '700' },
 });
 

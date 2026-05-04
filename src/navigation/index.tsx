@@ -9,6 +9,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
+import { PlaylistDetailScreen } from '../screens/PlaylistDetailScreen';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { COLORS, SIZES } from '../utils/constants';
 import { RootStackParamList, BottomTabParamList } from './types';
@@ -108,6 +109,11 @@ export function AppNavigator() {
           name="Player"
           component={PlayerScreen}
           options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="PlaylistDetail"
+          component={PlaylistDetailScreen}
+          options={{ animation: 'slide_from_right' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

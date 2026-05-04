@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { SearchBar } from '../components/SearchBar';
 import { SongCard } from '../components/SongCard';
 import { SongCardSkeleton } from '../components/SkeletonLoader';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { COLORS, SIZES, TRENDING_QUERIES } from '../utils/constants';
 import { useSearch } from '../hooks/useSearch';
 import { usePlayer } from '../hooks/usePlayer';
 import { useLibraryStore } from '../store/libraryStore';
 import { MusicApi } from '../services/musicApi';
-import { SearchResult } from '../types';
+import { SearchResult, Song } from '../types';
 
 export function SearchScreen() {
   const { query, setQuery, results, isLoading, error } = useSearch();
   const { playSong, currentSong, toggleLike, isLiked } = usePlayer();
   const { likedSongs } = useLibraryStore();
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   async function handlePress(result: SearchResult) {
     Keyboard.dismiss();
@@ -115,6 +117,10 @@ export function SearchScreen() {
               isActive={currentSong?.id === item.id}
               isLiked={isLiked(item.id)}
               onToggleLike={() => handleLike(item)}
+              onMorePress={() => setSelectedSong({
+                id: item.id, title: item.title, artist: item.artist,
+                thumbnail: item.thumbnail, duration: item.duration, audioUrl: item.audioUrl,
+              })}
             />
           )}
           contentContainerStyle={styles.list}
@@ -122,6 +128,7 @@ export function SearchScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <AddToPlaylistModal song={selectedSong} onClose={() => setSelectedSong(null)} />
     </KeyboardAvoidingView>
   );
 }

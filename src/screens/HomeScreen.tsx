@@ -22,7 +22,9 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { SongCard, HorizontalSongCard } from '../components/SongCard';
 import { SongCardSkeleton } from '../components/SkeletonLoader';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { Song, SearchResult } from '../types';
+
 import { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,6 +37,7 @@ export function HomeScreen() {
   const [trending, setTrending] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const loadTrending = useCallback(async () => {
     setIsLoading(true);
@@ -148,12 +151,18 @@ export function HomeScreen() {
                   song={item}
                   onPress={() => handleSongPress(item)}
                   isActive={currentSong?.id === item.id}
+                  onMorePress={() => setSelectedSong({
+                    id: item.id, title: item.title, artist: item.artist,
+                    thumbnail: item.thumbnail, duration: item.duration, audioUrl: item.audioUrl,
+                  })}
                 />
               ))}
         </Section>
 
         <View style={{ height: SIZES.miniPlayerHeight + SIZES.tabBarHeight + 16 }} />
       </ScrollView>
+
+      <AddToPlaylistModal song={selectedSong} onClose={() => setSelectedSong(null)} />
     </View>
   );
 }
