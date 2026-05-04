@@ -1,6 +1,3 @@
-// BhaskarPanja93/MusicAPI — update BASE_URL to your deployed instance
-export const API_BASE_URL = 'https://music-api-phi-three.vercel.app';
-
 export const COLORS = {
   background: '#0A0A0A',
   surface: '#111111',

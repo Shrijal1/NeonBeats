@@ -38,7 +38,7 @@ export function SearchScreen() {
           artist: r.artist,
           thumbnail: r.thumbnail,
           duration: r.duration,
-          audioUrl: MusicApi.getAudioStreamUrl(r.id),
+          audioUrl: r.audioUrl,
         }));
       await playSong(song, [song, ...queue]);
     } catch {}

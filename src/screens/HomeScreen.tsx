@@ -22,7 +22,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { SongCard, HorizontalSongCard } from '../components/SongCard';
 import { SongCardSkeleton } from '../components/SkeletonLoader';
-import { Song, SearchResult } from '../types';
+import { SearchResult } from '../types';
 import { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -70,7 +70,7 @@ export function HomeScreen() {
         artist: r.artist,
         thumbnail: r.thumbnail,
         duration: r.duration,
-        audioUrl: MusicApi.getAudioStreamUrl(r.id),
+        audioUrl: r.audioUrl,
       }));
     await playSong(song, [song, ...queue]);
   }

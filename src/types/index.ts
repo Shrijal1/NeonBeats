@@ -17,6 +17,7 @@ export interface SearchResult {
   artist: string;
   thumbnail: string;
   duration: number;
+  audioUrl: string;
 }
 
 export interface Playlist {
@@ -42,20 +43,17 @@ export interface LibraryState {
   playlists: Playlist[];
 }
 
-// API response shapes
-export interface PrepareResponse {
-  id: string;
+// iTunes API response shape (internal)
+export interface ItunesTrack {
+  trackId: number;
+  trackName: string;
+  artistName: string;
+  artworkUrl100: string;
+  previewUrl?: string;
+  trackTimeMillis: number;
 }
 
-export interface FetchResponse {
-  id: string;
-  title: string;
-  artist?: string;
-  thumbnail: string;
-  duration: number;
-  audioUrl?: string;
-  links?: {
-    youtube?: string;
-    spotify?: string;
-  };
+export interface ItunesResponse {
+  resultCount: number;
+  results: ItunesTrack[];
 }
