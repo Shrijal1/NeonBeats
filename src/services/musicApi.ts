@@ -1,8 +1,8 @@
-import { Song, SearchResult, ItunesTrack, ItunesResponse } from '../types';
+import { Song, SearchResult, SaavnTrack, SaavnSearchResponse, SaavnSongResponse } from '../types';
 import { Storage } from '../utils/storage';
 
-const ITUNES_SEARCH = 'https://itunes.apple.com/search';
-const ITUNES_LOOKUP = 'https://itunes.apple.com/lookup';
+const BASE = 'https://jiosaavn-api-privatecvc2.vercel.app';
+const QUALITY = '160kbps';
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -10,38 +10,47 @@ async function get<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-function artworkHD(url: string): string {
-  return url.replace('100x100bb', '600x600bb');
+function pickAudio(downloadUrl: SaavnTrack['downloadUrl']): string {
+  return (
+    downloadUrl.find((d) => d.quality === QUALITY)?.link ??
+    downloadUrl[downloadUrl.length - 1]?.link ??
+    ''
+  );
 }
 
-function trackToSong(t: ItunesTrack): Song {
+function pickImage(image: SaavnTrack['image']): string {
+  return image.find((i) => i.quality === '500x500')?.link ?? image[image.length - 1]?.link ?? '';
+}
+
+function trackToSong(t: SaavnTrack): Song {
   return {
-    id: String(t.trackId),
-    title: t.trackName,
-    artist: t.artistName,
-    thumbnail: artworkHD(t.artworkUrl100),
-    duration: Math.round(t.trackTimeMillis / 1000),
-    audioUrl: t.previewUrl ?? '',
+    id: t.id,
+    title: t.name,
+    artist: t.primaryArtists,
+    thumbnail: pickImage(t.image),
+    duration: Number(t.duration),
+    audioUrl: pickAudio(t.downloadUrl),
   };
 }
 
-function trackToSearchResult(t: ItunesTrack): SearchResult {
+function trackToSearchResult(t: SaavnTrack): SearchResult {
   return {
-    id: String(t.trackId),
-    title: t.trackName,
-    artist: t.artistName,
-    thumbnail: artworkHD(t.artworkUrl100),
-    duration: Math.round(t.trackTimeMillis / 1000),
-    audioUrl: t.previewUrl ?? '',
+    id: t.id,
+    title: t.name,
+    artist: t.primaryArtists,
+    thumbnail: pickImage(t.image),
+    duration: Number(t.duration),
+    audioUrl: pickAudio(t.downloadUrl),
   };
 }
 
 export const MusicApi = {
   async search(query: string): Promise<SearchResult[]> {
-    const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(query)}&media=music&entity=song&limit=20&country=US`;
-    const data = await get<ItunesResponse>(url);
-    return data.results
-      .filter((t) => t.previewUrl)
+    const url = `${BASE}/search/songs?query=${encodeURIComponent(query)}&page=1&limit=20`;
+    const data = await get<SaavnSearchResponse>(url);
+    if (data.status !== 'SUCCESS') return [];
+    return data.data.results
+      .filter((t) => t.downloadUrl?.length)
       .map(trackToSearchResult);
   },
 
@@ -49,17 +58,16 @@ export const MusicApi = {
     const cached = await Storage.getCachedSong(songId);
     if (cached) return cached;
 
-    const url = `${ITUNES_LOOKUP}?id=${songId}`;
-    const data = await get<ItunesResponse>(url);
-    const track = data.results[0];
-    if (!track) throw new Error('Track not found');
+    const url = `${BASE}/songs?id=${songId}`;
+    const data = await get<SaavnSongResponse>(url);
+    if (data.status !== 'SUCCESS' || !data.data[0]) throw new Error('Track not found');
 
-    const song = trackToSong(track);
+    const song = trackToSong(data.data[0]);
     await Storage.cacheSong(song);
     return song;
   },
 
-  // kept for API compatibility — audioUrl is now in SearchResult directly
+  // audioUrl is now embedded in SearchResult — this is only a fallback
   getAudioStreamUrl(songId: string): string {
     return songId;
   },

@@ -22,7 +22,7 @@ import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { SongCard, HorizontalSongCard } from '../components/SongCard';
 import { SongCardSkeleton } from '../components/SkeletonLoader';
-import { SearchResult } from '../types';
+import { Song, SearchResult } from '../types';
 import { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;

@@ -43,17 +43,31 @@ export interface LibraryState {
   playlists: Playlist[];
 }
 
-// iTunes API response shape (internal)
-export interface ItunesTrack {
-  trackId: number;
-  trackName: string;
-  artistName: string;
-  artworkUrl100: string;
-  previewUrl?: string;
-  trackTimeMillis: number;
+// JioSaavn API response shapes (internal)
+export interface SaavnQuality {
+  quality: string;
+  link: string;
 }
 
-export interface ItunesResponse {
-  resultCount: number;
-  results: ItunesTrack[];
+export interface SaavnTrack {
+  id: string;
+  name: string;
+  duration: string;
+  primaryArtists: string;
+  image: SaavnQuality[];
+  downloadUrl: SaavnQuality[];
+}
+
+export interface SaavnSearchResponse {
+  status: string;
+  data: {
+    total: number;
+    start: number;
+    results: SaavnTrack[];
+  };
+}
+
+export interface SaavnSongResponse {
+  status: string;
+  data: SaavnTrack[];
 }
